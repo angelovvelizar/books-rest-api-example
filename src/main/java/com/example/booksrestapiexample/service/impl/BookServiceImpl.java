@@ -1,11 +1,17 @@
 package com.example.booksrestapiexample.service.impl;
 
+import com.example.booksrestapiexample.model.dto.AuthorDTO;
 import com.example.booksrestapiexample.model.dto.BookDTO;
 import com.example.booksrestapiexample.model.entity.AuthorEntity;
 import com.example.booksrestapiexample.model.entity.BookEntity;
+import com.example.booksrestapiexample.repository.AuthorRepository;
 import com.example.booksrestapiexample.repository.BookRepository;
 import com.example.booksrestapiexample.service.BookService;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +22,12 @@ import java.util.stream.Collectors;
 public class BookServiceImpl implements BookService {
     private final BookRepository bookRepository;
     private final ModelMapper modelMapper;
+    private final AuthorRepository authorRepository;
 
-    public BookServiceImpl(BookRepository bookRepository, ModelMapper modelMapper) {
+    public BookServiceImpl(BookRepository bookRepository, ModelMapper modelMapper, AuthorRepository authorRepository) {
         this.bookRepository = bookRepository;
         this.modelMapper = modelMapper;
+        this.authorRepository = authorRepository;
     }
 
 
@@ -75,6 +83,39 @@ public class BookServiceImpl implements BookService {
         this.bookRepository.save(bookEntity);
 
         return bookEntity.getId();
+    }
+
+    @Override
+    public Long updateBook(BookDTO bookDTO) {
+        BookEntity bookEntity = this.bookRepository.findById(bookDTO.getId()).orElse(null);
+        if(bookEntity == null){
+            return null;
+        }
+
+        AuthorEntity author = this.authorRepository.findByName(bookDTO.getAuthor().getName())
+                .orElseGet(() -> {
+                    AuthorEntity newAuthor = new AuthorEntity();
+                    newAuthor.setName(bookDTO.getAuthor().getName());
+                    return authorRepository.save(newAuthor);
+                });
+
+        bookEntity.setTitle(bookDTO.getTitle());
+        bookEntity.setIsbn(bookDTO.getIsbn());
+        bookEntity.setAuthor(author);
+
+        return this.bookRepository.save(bookEntity).getId();
+    }
+
+    @Override
+    public Page<BookDTO> getBooks(int pageNo, int pageSize, String sortBy) {
+        Pageable pageable = PageRequest.of(pageNo, pageSize , Sort.by(sortBy));
+
+        return this.bookRepository.findAll(pageable).map(e -> {
+            BookDTO book = this.modelMapper.map(e, BookDTO.class);
+            AuthorDTO author = this.modelMapper.map(e.getAuthor(), AuthorDTO.class);
+            book.setAuthor(author);
+            return book;
+        });
     }
 
 

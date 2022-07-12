@@ -1,6 +1,8 @@
 package com.example.booksrestapiexample.model.dto;
 
 public class BookDTO {
+
+    private Long id;
     private String title;
     private String isbn;
     private AuthorDTO author;
@@ -27,5 +29,13 @@ public class BookDTO {
 
     public void setAuthor(AuthorDTO author) {
         this.author = author;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }
